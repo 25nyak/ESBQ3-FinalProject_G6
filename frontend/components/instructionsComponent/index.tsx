@@ -5,7 +5,11 @@ import { ethers} from 'ethers';
 import * as tokenJson from '../assets/LotteryToken.json';
 import Footer from "@/components/instructionsComponent/navigation/footer";
 
-const TOKEN_ADDRESS = '0xdCf3F6153F328A7Aacd7C688Bf39E8750a375746';
+const TOKEN_ADDRESS = '0xdCf3F6153F328A7Aacd7C688Bf39E8750a375746'; // 18 decimals
+const USDC_ADDRESS = '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8'   //  6 decimals
+const ORACLE_ETH_USD = '0xD17ecb6579cAD73aE27596929e13b619bA9060A5' //  8 decimals
+const G6T_SWAP_CONTRACT = '0x2fF3113240Cd16199de9383939E3702b2e37d7c9'
+
 
 export default function Loading() {
 	const [mounted, setMounted] = useState(false);
