@@ -16,6 +16,7 @@
     "encoding": "^0.1.13",
     "eslint": "8.42.0",
     "eslint-config-next": "13.4.4",
+    "ethers": "^6.7.1",
     "fs": "^0.0.1-security",
     "lokijs": "^1.5.12",
     "next": "13.4.4",

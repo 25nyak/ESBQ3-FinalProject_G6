@@ -1,59 +1,134 @@
-import styles from "./instructionsComponent.module.css";
+import { useState, useEffect } from 'react';
+import styles from './instructionsComponent.module.css';
+import { useAccount, useBalance, useContractRead, useContractWrite, useNetwork, usePrepareContractWrite, useWaitForTransaction } from 'wagmi';
+import { ethers} from 'ethers';
+import * as tokenJson from '../assets/LotteryToken.json';
+import Footer from "@/components/instructionsComponent/navigation/footer";
 
-export default function InstructionsComponent() {
+const TOKEN_ADDRESS = '0xdCf3F6153F328A7Aacd7C688Bf39E8750a375746';
+
+export default function Loading() {
+	const [mounted, setMounted] = useState(false);
+	useEffect(() => {
+		setMounted(true)
+	}, [])
+
   return (
-    <div className={styles.container}>
-      <header className={styles.header_container}>
-        <div className={styles.header}>
-          <h1>
-            create<span>-web3-dapp</span>
-          </h1>
-          <h3>The ultimate solution to create web3 applications</h3>
-        </div>
-      </header>
+		mounted &&
+			<div className={styles.container}>
+				<header className={styles.header_container}>
+					<div className={styles.header}>
+						<span><h2>Lending Protocol</h2></span>
+					</div>
+				</header>
+					<p className={styles.get_started}>
+						<PageBody></PageBody>
+					</p>
+			</div>
+  );
+}
 
-      <div className={styles.buttons_container}>
-        <a
-          target={"_blank"}
-          href={"https://createweb3dapp.alchemy.com/#components"}
-        >
-          <div className={styles.button}>
-            {/* <img src="https://static.alchemyapi.io/images/cw3d/Icon%20Medium/lightning-square-contained-m.svg" width={"20px"} height={"20px"} /> */}
-            <p>Add Components</p>
-          </div>
-        </a>
-        <a
-          target={"_blank"}
-          href={"https://createweb3dapp.alchemy.com/#templates"}
-        >
-          <div className={styles.button}>
-            {/* <img src="https://static.alchemyapi.io/images/cw3d/Icon%20Medium/lightning-square-contained-m.svg" width={"20px"} height={"20px"} /> */}
-            <p>Explore Templates</p>
-          </div>
-        </a>
-        <a
-          target={"_blank"}
-          href={"https://docs.alchemy.com/docs/create-web3-dapp"}
-        >
-          <div className={styles.button}>
-            <img
-              src="https://static.alchemyapi.io/images/cw3d/Icon%20Large/file-eye-01-l.svg"
-              width={"20px"}
-              height={"20px"}
-            />
-            <p>Visit Docs</p>
-          </div>
-        </a>
-        <a>
-          <div className={styles.button}>
-            {/* <img src="https://static.alchemyapi.io/images/cw3d/Icon%20Medium/lightning-square-contained-m.svg" width={"20px"} height={"20px"} /> */}
-            <p>Contribute</p>
-          </div>
-        </a>
+function PageBody() {
+	const {address, isConnecting, isDisconnected } = useAccount();
+	if (address)
+		return (
+			<div>
+				<UserInfo></UserInfo>
+				<hr></hr>
+			</div>
+		);
+		if (isConnecting)
+    return (
+      <div>
+        <p>Loading...</p>
       </div>
-      <p className={styles.get_started}>
-        Get started by editing this page in <span>/pages/index.js</span>
-      </p>
+    );
+  if (isDisconnected)
+    return (
+      <div>
+        <p>Wallet disconnected. Connect wallet to continue</p>
+      </div>
+    );
+  return (
+    <div>
+      <p>Connect wallet to continue</p>
     </div>
   );
+}
+
+////////\\\\\\\\     WALLET INFO   ////////\\\\\\\\
+
+function UserInfo() {
+	const {address, isConnecting, isDisconnected } = useAccount();
+	const { chain } = useNetwork();
+	if (address)
+    return (
+      <div>
+				<header className={styles.header_container}>
+					<div className={styles.header}>
+						<h3>User Info</h3>
+					</div>
+				</header>
+					<p>Connected to <i>{chain?.name}</i> network </p>
+					<TokenName></TokenName>
+					<WalletTokenBalance address={address}></WalletTokenBalance>
+      </div>
+    );
+  if (isConnecting)
+    return (
+      <div>
+        <p>Loading...</p>
+      </div>
+    );
+  if (isDisconnected)
+    return (
+      <div>
+        <p>Wallet disconnected. Connect wallet to continue</p>
+      </div>
+    );
+  return (
+    <div>
+      <p>Connect wallet to continue</p>
+    </div>
+  );
+}
+
+function TokenName() {
+  const { data, isError, isLoading } = useContractRead({
+    address: TOKEN_ADDRESS,
+    abi: tokenJson.abi,
+    functionName: "name",
+  });
+
+  const name = typeof data === "string" ? data : 0;
+
+  if (isLoading) return <div>Fetching name…</div>;
+  if (isError) return <div>Error fetching name</div>;
+  return <div><b>Token: </b> {name} ({TokenSymbol()})</div>;
+}
+
+function TokenSymbol() {
+  const { data, isError, isLoading } = useContractRead({
+    address: TOKEN_ADDRESS,
+    abi: tokenJson.abi,
+    functionName: 'symbol',
+  });
+
+  const symbol = typeof data === 'string' ? data : 0;
+
+  if (isLoading) return <div>Fetching name…</div>;
+  if (isError) return <div>Error fetching symbol</div>;
+  return symbol;
+}
+
+function WalletTokenBalance(params: { address: `0x${string}` }) {
+  const { data, isError, isLoading } = useBalance({
+    address: params.address,
+		token: TOKEN_ADDRESS,
+		watch: true
+  });
+
+  if (isLoading) return <div>Fetching balance…</div>;
+  if (isError) return <div>Error fetching balance</div>;
+  return <div><b>Balance: </b>{data?.formatted} <TokenSymbol></TokenSymbol></div>;
 }

@@ -1,20 +1,22 @@
 "use client";
 import { WagmiConfig, createConfig } from "wagmi";
+import { sepolia } from "wagmi/chains";
 import { ConnectKitProvider, getDefaultConfig } from "connectkit";
 import Navbar from "@/components/instructionsComponent/navigation/navbar";
-import Footer from "@/components/instructionsComponent/navigation/footer";
+
+const chains = [sepolia];
 
 const config = createConfig(
   getDefaultConfig({
     // Required API Keys
     alchemyId: process.env.ALCHEMY_API_KEY, // or infuraId
-    walletConnectProjectId: "demo",
+    walletConnectProjectId: "G6 Lending Protocol",
 
     // Required
-    appName: "You Create Web3 Dapp",
-
+    appName: "Group 6 Lending Protocol",
+    chains,
     // Optional
-    appDescription: "Your App Description",
+    appDescription: "Lending Protocol",
     appUrl: "https://family.co", // your app's url
     appIcon: "https://family.co/logo.png", // your app's logo,no bigger than 1024x1024px (max. 1MB)
   })
@@ -28,12 +30,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <WagmiConfig config={config}>
-        <ConnectKitProvider mode="dark">
+        <ConnectKitProvider theme="retro">
           <body>
             <div style={{ display: "flex", flexDirection: "column", minHeight: "105vh" }}>
               <Navbar />
               <div style={{flexGrow: 1}}>{children}</div>
-              <Footer />
             </div>
           </body>
         </ConnectKitProvider>
