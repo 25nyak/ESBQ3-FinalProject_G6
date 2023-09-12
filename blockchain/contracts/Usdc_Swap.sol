@@ -18,60 +18,60 @@ interface IERC20 {
 /// @title A very simple lottery contract
 /// @author josevazf
 /// @notice You can use this contract for running a very simple lottery
-/// @dev This contract implements a relatively weak randomness source, since there is no cliff period between the randao reveal and the actual usage in this contract
-/// @custom:teaching This is a contract meant for teaching only
-contract Usdc_Swap is Ownable {
+contract USDC_Swap is Ownable {
     /// @notice Address of the token used to distribute rewards to lenders
     CallOracle public oracleContract;
-    IERC20 public usdcContract;
-    /// @notice Amount of tokens given per ETH paid
-    uint256 public purchaseRatio;
+    IERC20 public usdcToken;
 
-    /// @notice Amount of tokens in the prize pool
-    uint256 public prizePool;
-    /// @notice Amount of tokens in the owner pool
-    uint256 public ownerPool;
-
-    /// @notice Mapping of prize available for withdraw for each account
-    mapping(address => uint256) public prize;
-
-    /// @dev List of bet slots
-    address[] _slots;
+    /// @notice Amount of USDC tokens in the prize pool
+    uint256 public usdcPool;
 
     /// @notice Constructor function
-    constructor(address _oracleAddress, address _usdcAddress) {
-        oracleContract = CallOracle(_oracleAddress);
-        usdcContract = IERC20(_usdcAddress);
+    constructor() {
+        oracleContract = CallOracle(0xD17ecb6579cAD73aE27596929e13b619bA9060A5);
+        usdcToken = IERC20(0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8);
     }
 
     function getUSDCBalance(address account) public view returns (uint256) {
-        return usdcContract.balanceOf(account);
+        return usdcToken.balanceOf(account);
     }
 
+    function getETHPrice() public view returns (int256) {
+        return oracleContract.getEthUsdPrice();
+    }
+
+    /// @notice Charges the bet price and creates a new bet slot with the sender's address
+    function depositUSDC(uint256 amount) public {
+        usdcPool += amount;
+        usdcToken.transferFrom(msg.sender, address(this), amount);
+    }
 
     /// @notice Gives tokens based on the amount of ETH sent
     /// @dev This implementation is prone to rounding problems
-    function purchaseTokens() external payable {
-        paymentToken.mint(msg.sender, msg.value * purchaseRatio);
+    function swapToUSDC() external payable {
+        uint256 price = uint256(getETHPrice()) / 100;
+        uint256 usdcAmount = (msg.value * price)/(1 ether);
+        usdcPool -= usdcAmount;
+        usdcToken.transfer(msg.sender, usdcAmount);
     }
 
-    /// @notice Withdraws `amount` from that accounts's prize pool
-    function prizeWithdraw(uint256 amount) external {
-        require(amount <= prize[msg.sender], "Not enough prize");
-        prize[msg.sender] -= amount;
-        paymentToken.transfer(msg.sender, amount);
+    /// @notice Withdraws `amount` of USDC from the pool
+    function ownerWithdrawUSDC(uint256 amount) external onlyOwner {
+        require(amount <= usdcPool, "Amount not available to withdraw");
+        usdcPool -= amount;
+        usdcToken.transfer(msg.sender, amount);
     }
 
-    /// @notice Withdraws `amount` from the owner's pool
-    function ownerWithdraw(uint256 amount) external onlyOwner {
-        require(amount <= ownerPool, "Not enough fees collected");
-        ownerPool -= amount;
-        paymentToken.transfer(msg.sender, amount);
+    /// @notice Whithdraws collected ETH to the owner
+    function ownerWithdrawETH() public onlyOwner{
+        (bool ok,) = msg.sender.call{value: address(this).balance}("");
+        require(ok, "Failed to withdraw");
     }
 
+/*
     /// @notice Burns `amount` tokens and give the equivalent ETH back to user
     function returnTokens(uint256 amount) external {
         paymentToken.burnFrom(msg.sender, amount);
         payable(msg.sender).transfer(amount / purchaseRatio);
-    }
+    } */
 }
