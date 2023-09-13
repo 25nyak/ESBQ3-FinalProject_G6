@@ -9,7 +9,6 @@ interface IERC20 {
   function balanceOf(address account) external view returns (uint256);
   function transfer(address recipient, uint256 amount) external returns (bool);
   function allowance(address owner, address spender) external view returns (uint256);
-  function approve(address spender, uint256 amount) external returns (bool);
   function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 }
 
@@ -29,8 +28,8 @@ contract LendingPlatform is Ownable {
   struct UserInfo {
     uint256 depositL_USDC;          // USDC deposited (Lending)
     uint256 time_depositL_USDC;     // Time of USDC deposit (Lending)
-    uint256 g6tReward_deposit;      // G6T rewards from deposit (Lending)
-    uint256 usdcReward_deposit;     // USDC rewards from protocol fees
+    uint256 g6tReward_deposit;      // G6T rewards from deposit (Lending)-------> TO DO!
+    uint256 usdcReward_deposit;     // USDC rewards from protocol fees----------> TO DO!
     uint256 depositC_ETH;           // ETH deposited (Collateral)
     uint256 time_depositC_ETH;      // Time of ETH deposit (Collateral)
     uint256 availableB_USDC;        // Available USDC to borrow (Borrowing)
@@ -132,11 +131,17 @@ contract LendingPlatform is Ownable {
   /// @notice Deposits ETH tokens as Collateral and sets borrowing limit to 80% of ETH value in USDC
   /// @dev    Borrower Dashboard
   /// @dev This implementation is prone to rounding problems
-  function depositETH() external payable {
+  function depositC_ETH() external payable {
     addAddressIf(msg.sender);
     user[msg.sender].depositC_ETH += msg.value;
     uint256 usdcValue = getUSDCValue(user[msg.sender].depositC_ETH);
     user[msg.sender].availableB_USDC += (usdcValue * 8) / 10;
+  }
+
+  /// @notice Whithdraws collected ETH to the owner
+  function withdrawC_ETH() external {
+    (bool ok,) = msg.sender.call{value: address(this).balance}("");
+    require(ok, "Failed to withdraw");
   }
 
   /// @notice Borrow USDC `amount` from the Lending Pool
@@ -195,7 +200,7 @@ contract LendingPlatform is Ownable {
   /// @notice Withdraws USDC `amount` from the Lending Pool
   /// @dev    Lender Dashboard
   function ownerWithdrawUSDC() external onlyOwner{
-    usdcToken.transfer(msg.sender, lendingPool);
+    usdcToken.transfer(msg.sender, lendingPool + feesPool);
     lendingPool = 0;
   }
   /// @notice Receive function allows to receive ETH when no calldata is passed
