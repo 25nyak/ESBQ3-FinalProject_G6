@@ -3,15 +3,17 @@ import styles from './instructionsComponent.module.css';
 import { useAccount, useBalance, useContractRead, useContractWrite, useNetwork, usePrepareContractWrite, useWaitForTransaction } from 'wagmi';
 import { ethers} from 'ethers';
 import * as g6TokenJson from '../assets/G6Token.json';
+import * as g6TSwapJson from '../assets/G6Token_Swap.json';
 import * as usdcTokenJson from '../assets/USDCToken.json';
-
+import * as usdcSwapJson from '../assets/USDC_Swap.json';
 import Footer from "@/components/instructionsComponent/navigation/footer";
 
-const G6T_ADDRESS = '0xdCf3F6153F328A7Aacd7C688Bf39E8750a375746';   // 18 decimals
+const G6T_ADDRESS = '0x1D6557e0a71Eee3A5cF54CC2617E194264619c0A';   // 18 decimals
 const USDC_ADDRESS = '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8'   //  6 decimals
 const ORACLE_ETH_USD = '0xD17ecb6579cAD73aE27596929e13b619bA9060A5' //  8 decimals
-const G6T_SWAP_CONTRACT = '0x2fF3113240Cd16199de9383939E3702b2e37d7c9'
-const USDC_SWAP_CONTRACT = '0x92b3c8E27921aD63A5859f8Bd266C6Fb6410b20A'
+const G6T_SWAP_CONTRACT = '0xdfAf15C7D809027571784F3Dd3F2e1cd7263A229'
+const USDC_SWAP_CONTRACT = '0xddcEf1aEe575686B892aaea7d3773817be151E42'
+const LENDING_PLAT_CONTRACT = '0x9dD25B7ed4a0ddfB15EaA97f361d04729a58c368'
 
 export default function Loading() {
 	const [mounted, setMounted] = useState(false);
@@ -41,6 +43,11 @@ function PageBody() {
 			<div>
 				<UserInfo></UserInfo>
 				<hr></hr>
+        <G6TokenSwap></G6TokenSwap>
+        <hr></hr>
+        <USDCTokenSwap></USDCTokenSwap>
+        <hr></hr>
+        <Footer />
 			</div>
 		);
 		if (isConnecting)
@@ -76,6 +83,7 @@ function UserInfo() {
 					</div>
 				</header>
 					<p>Connected to <i>{chain?.name}</i> network </p>
+          <CheckETHPrice></CheckETHPrice>
 					{/* <G6TokenName></G6TokenName> */}
 					<G6TokenBalance address={address}></G6TokenBalance>
           {/* <USDCTokenName></USDCTokenName> */}
@@ -144,7 +152,7 @@ function G6TokenBalance(params: { address: `0x${string}` }) {
 function USDCTokenName() {
   const { data, isError, isLoading } = useContractRead({
     address: USDC_ADDRESS,
-    abi: g6TokenJson.abi,
+    abi: usdcTokenJson.abi,
     functionName: "name",
   });
 
@@ -152,13 +160,13 @@ function USDCTokenName() {
 
   if (isLoading) return <div>Fetching name…</div>;
   if (isError) return <div>Error fetching name</div>;
-  return <div><b>Token: </b> {name} ({G6TokenSymbol()})</div>;
+  return <div><b>Token: </b> {name} ({USDCTokenSymbol()})</div>;
 }
 
 function USDCTokenSymbol() {
   const { data, isError, isLoading } = useContractRead({
     address: USDC_ADDRESS,
-    abi: g6TokenJson.abi,
+    abi: usdcTokenJson.abi,
     functionName: 'symbol',
   });
 
@@ -179,4 +187,356 @@ function USDCTokenBalance(params: { address: `0x${string}` }) {
   if (isLoading) return <div>Fetching balance…</div>;
   if (isError) return <div>Error fetching balance</div>;
   return <div><b><USDCTokenSymbol></USDCTokenSymbol> balance: </b>{data?.formatted}</div>;
+}
+
+////////\\\\\\\\     G6T SWAP   ////////\\\\\\\\
+
+function G6TokenSwap() {
+	const {address} = useAccount();
+	if (address)
+	return (
+		<div>
+			<header className={styles.header_container}>
+				<div className={styles.header}>
+					<h3>G6T Swap</h3>
+				</div>
+			</header>
+        <G6TokenPrice></G6TokenPrice>
+				<CheckG6TAllowance address={address}></CheckG6TAllowance>
+				<ApproveG6Tokens></ApproveG6Tokens>
+					<br></br>
+				<BuyG6Tokens></BuyG6Tokens>
+					<br></br>
+				<b>Sell Tokens</b>
+				<SellG6Tokens></SellG6Tokens>
+					<br></br>
+{/* 				<TransferG6Tokens></TransferG6Tokens>
+					<br></br> */}
+		</div>
+	);
+}
+
+function G6TokenPrice() {
+	const { data, isError, isLoading } = useContractRead({
+    address: G6T_SWAP_CONTRACT,
+    abi: g6TSwapJson.abi,
+    functionName: 'purchaseRatio',
+		watch: true
+  });
+
+	if (isLoading) return <div>Checking token price…</div>;
+  if (isError) return <div>Error checking token price</div>;
+  return <div><b>Token price:</b> {String((Number(data) * 0.01))} <G6TokenSymbol></G6TokenSymbol> / 0.01 ETH</div>;
+}
+
+function CheckG6TAllowance(params: { address: `0x${string}` }) {
+	const { data, isError, isLoading } = useContractRead({
+    address: G6T_ADDRESS,
+    abi: g6TokenJson.abi,
+    functionName: 'allowance',
+		args: [params.address, G6T_SWAP_CONTRACT],
+		watch: true,
+  });
+
+	const allowance = Number(data);
+	if (isLoading) return <div>Checking allowance…</div>;
+  if (isError) return <div>Error checking allowance</div>;
+  return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance))} <G6TokenSymbol></G6TokenSymbol></div>;
+}
+
+function ApproveG6Tokens()	{
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: G6T_ADDRESS,
+    abi: g6TokenJson.abi,
+    functionName: 'approve',
+  })
+		return (
+			<div>
+				<input
+					type='number'
+					value={amount}
+					onChange={(e) => setAmount(e.target.value)}
+					placeholder="Amount"
+					/>
+				<button
+					disabled={!write}
+					onClick={() => {
+						write ({
+							args: [G6T_SWAP_CONTRACT, ethers.parseUnits(amount)],
+						})
+					}}
+				>
+					Approve Tokens
+				</button>
+				{isLoading && <>&nbsp;Approve in wallet</>}
+				{isSuccess && <>&nbsp; 
+					<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+						Transaction details
+					</a></>}
+			</div>
+		);
+}
+
+function BuyG6Tokens() {
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: G6T_SWAP_CONTRACT,
+    abi: g6TSwapJson.abi,
+    functionName: 'buyTokens',
+  })
+		return (
+			<div>
+				<b>Buy Tokens</b>
+				<br></br>
+					<input
+						type='number'
+						value={amount}
+						onChange={(e) => setAmount(e.target.value)}
+						placeholder={`100 ${G6TokenSymbol()}/0.01 ETH`}
+					/>
+					<button
+						disabled={!write}
+						onClick={() =>write ({
+							value: ethers.parseUnits(String((Number(amount)*0.0001))) 
+						})
+					}
+					>
+						Buy
+					</button>
+					{isLoading && <>&nbsp;Approve in wallet</>}
+					{isSuccess && <>&nbsp; 
+						<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>Transaction details</a></>}
+			</div>
+		);
+}
+
+function SellG6Tokens() {
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: G6T_SWAP_CONTRACT,
+    abi: g6TSwapJson.abi,
+    functionName: 'sellTokens',
+  })
+		return (
+			<div>
+				<input
+					type='number'
+					value={amount}
+					onChange={(e) => setAmount(e.target.value)}
+					placeholder={`0.01 ETH/100 ${G6TokenSymbol()}`}
+				/>
+					<button
+						disabled={!write}
+						onClick={() => {
+							write ({args: [ethers.parseUnits(amount)]})
+					}}
+					>
+						Sell Tokens
+					</button>
+					{isLoading && <>&nbsp;Approve in wallet</>}
+					{isSuccess && <>&nbsp; 
+						<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+							Transaction details
+						</a></>}
+			</div>
+		);
+}
+
+/* function TransferG6Tokens() {
+	const [addressTo, setAddress] = useState("");
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: G6T_ADDRESS,
+    abi: g6TokenJson.abi,
+    functionName: 'transfer',
+  })
+		return (
+			<div>
+				<b>Transfer Tokens</b>
+				<br></br>	
+					<input
+						value={addressTo}
+						onChange={(e) => setAddress(e.target.value)}
+						placeholder='Address to (0x...)'
+					/>
+						<br></br>
+							<input
+								type='number'
+								value={amount}
+								onChange={(e) => setAmount(e.target.value)}
+								placeholder='Amount'
+							/>
+						<button
+							disabled={!write}
+							onClick={() =>write ({
+								args: [addressTo, ethers.parseUnits(amount)],
+							})
+						}
+						>
+							Transfer Tokens
+						</button>
+						{isLoading && <>&nbsp;Approve in wallet</>}
+						{isSuccess && <>&nbsp; 
+							<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+								Transaction details
+							</a></>}
+			</div>
+		);
+} */
+
+////////\\\\\\\\     USDC SWAP   ////////\\\\\\\\
+
+function USDCTokenSwap() {
+	const {address} = useAccount();
+	if (address)
+	return (
+		<div>
+			<header className={styles.header_container}>
+				<div className={styles.header}>
+					<h3>USDC Swap</h3>
+				</div>
+			</header>
+        <div><b>ETH price: </b><CheckETHPrice></CheckETHPrice> <USDCTokenSymbol></USDCTokenSymbol></div>
+ 				<CheckUSDCAllowance address={address}></CheckUSDCAllowance>
+				<ApproveUSDCTokens></ApproveUSDCTokens>
+					<br></br>
+				<BuyUSDCTokens></BuyUSDCTokens>
+					<br></br>
+				<b>Sell Tokens</b>
+				<SellUSDCTokens></SellUSDCTokens>
+					<br></br>
+{/* 				<TransferUSDCTokens></TransferUSDCTokens>
+					<br></br> */}
+		</div>
+	);
+}
+
+function CheckETHPrice() {
+	const { data, isError, isLoading } = useContractRead({
+    address: USDC_SWAP_CONTRACT,
+    abi: usdcSwapJson.abi,
+    functionName: 'getETHPrice',
+		watch: true,
+  });
+
+	const price = Number(data) * 100;
+	if (isLoading) return <div>Checking ETH price from Chainlink…</div>;
+  if (isError) return <div>Error checking ETH price</div>;
+  return Number(ethers.formatUnits(price, 6));
+}
+
+function CheckUSDCAllowance(params: { address: `0x${string}` }) {
+	const { data, isError, isLoading } = useContractRead({
+    address: USDC_ADDRESS,
+    abi: usdcTokenJson.abi,
+    functionName: 'allowance',
+		args: [params.address, USDC_SWAP_CONTRACT],
+		watch: true,
+  });
+
+	const allowance = Number(data);
+	if (isLoading) return <div>Checking allowance…</div>;
+  if (isError) return <div>Error checking allowance</div>;
+  return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
+}
+
+function ApproveUSDCTokens()	{
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: USDC_ADDRESS,
+    abi: usdcTokenJson.abi,
+    functionName: 'approve',
+  })
+		return (
+			<div>
+				<input
+					type='number'
+					value={amount}
+					onChange={(e) => setAmount(e.target.value)}
+					placeholder="Amount"
+					/>
+				<button
+					disabled={!write}
+					onClick={() => {
+						write ({
+							args: [USDC_SWAP_CONTRACT, ethers.parseUnits(amount, 6)],
+						})
+					}}
+				>
+					Approve Tokens
+				</button>
+				{isLoading && <>&nbsp;Approve in wallet</>}
+				{isSuccess && <>&nbsp; 
+					<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+						Transaction details
+					</a></>}
+			</div>
+		);
+}
+
+function BuyUSDCTokens() {
+	const [amount, setAmount] = useState("");
+  const ethPrice = Number(CheckETHPrice());
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: USDC_SWAP_CONTRACT,
+    abi: usdcSwapJson.abi,
+    functionName: 'swapToUSDC',
+  })
+		return (
+			<div>
+				<b>Buy Tokens</b>
+				<br></br>
+					<input
+						type='number'
+						value={amount}
+						onChange={(e) => setAmount(e.target.value)}
+						placeholder={`${CheckETHPrice()}/1 ETH`}
+					/>
+					<button
+						disabled={!write}
+						onClick={() =>write ({
+							value: ethers.parseUnits(String((Number(amount) / (ethPrice / 10000))))
+						})
+					}
+					>
+						Buy
+					</button>
+					{isLoading && <>&nbsp;Approve in wallet</>}
+					{isSuccess && <>&nbsp; 
+						<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>Transaction details</a></>}
+			</div>
+		);
+}
+
+function SellUSDCTokens() {
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: USDC_SWAP_CONTRACT,
+    abi: usdcSwapJson.abi,
+    functionName: 'swapToETH',
+  })
+		return (
+			<div>
+				<input
+					type='number'
+					value={amount}
+					onChange={(e) => setAmount(e.target.value)}
+					placeholder={`amount ${USDCTokenSymbol()}`}
+				/>
+					<button
+						disabled={!write}
+						onClick={() => {
+							write ({args: [ethers.parseUnits(amount)]})
+					}}
+					>
+						Sell Tokens
+					</button>
+					{isLoading && <>&nbsp;Approve in wallet</>}
+					{isSuccess && <>&nbsp; 
+						<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+							Transaction details
+						</a></>}
+			</div>
+		);
 }
