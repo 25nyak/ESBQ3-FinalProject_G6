@@ -3,55 +3,94 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {G6Token} from "./G6Token.sol";
+import {CallOracle} from "./CallOracle.sol";
 
-/// @title A very simple lottery contract
+interface IERC20 {
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+}
+
+/// @title Group 6 Lending Plaform
 /// @author josevazf
 /// @notice You can use this contract for running a very simple lottery
 /// @dev This contract implements a relatively weak randomness source, since there is no cliff period between the randao reveal and the actual usage in this contract
-/// @custom:teaching This is a contract meant for teaching only
+/// @custom:poc This is a contract meant to be a proof of concept
 contract LendingPlatform is Ownable {
-    /// @notice Address of the token used to distribute rewards to lenders
-    G6Token public paymentToken;
-    /// @notice Amount of tokens given per ETH paid
-    uint256 public purchaseRatio;
-    /// @notice Amount of tokens required for placing a bet that goes for the prize pool
-    uint256 public betPrice;
-    /// @notice Amount of tokens required for placing a bet that goes for the owner pool
-    uint256 public betFee;
-    /// @notice Amount of tokens in the prize pool
-    uint256 public prizePool;
-    /// @notice Amount of tokens in the owner pool
-    uint256 public ownerPool;
+
+    /// @notice Address of the oracle contract ETH/USD from Chainlink feed
+    CallOracle public oracleContract;
+    /// @notice Address of the USDC token contract from Aave
+    IERC20 public usdcToken;
+    /// @notice Address of the G6T token used to distribute rewards to users
+    G6Token public g6Token;
+
+    /// @notice Struct to keep track of each user's stats
+    struct UserInfo {
+        uint256 depositL_USDC;          // USDC deposited (Lending)
+        uint256 time_depositL_USDC;     // Time of USDC deposit (Lending)
+        uint256 reward_deposit;         // Rewards from deposit
+        uint256 depositC_ETH;           // ETH deposited (Collateral)
+        uint256 time_depositC_ETH;      // Time of ETH deposit (Collateral)
+        uint256 availableB_USDC;        // Available USDC to borrow (Borrowing)
+        uint256 withdrawB_USDC;         // USDC withdrawn (Borrowing)
+        uint256 time_withdrawB_USDC;    // Time of USDC withdraw (Borrowing)
+    }
+
+    /// @notice Mapping of each user's address to it's corresponding struct element
+    mapping (address => UserInfo) public user;
+    /// @notice Amount of tokens in the Lending Pool
+    uint256 public lendingPool;
+    /// @notice Amount of tokens in the Fees Pool
+    uint256 public feesPool;
     /// @notice Flag indicating whether the lottery is open for bets or not
     bool public betsOpen;
     /// @notice Timestamp of the lottery next closing date and time
     uint256 public betsClosingTime;
-    /// @notice Mapping of prize available for withdraw for each account
-    mapping(address => uint256) public prize;
-
-    /// @dev List of bet slots
-    address[] _slots;
 
     /// @notice Constructor function
-    /// @param tokenName Name of the token used for payment
-    /// @param tokenSymbol Symbol of the token used for payment
-    /// @param _purchaseRatio Amount of tokens given per ETH paid
-    /// @param _betPrice Amount of tokens required for placing a bet that goes for the prize pool
-    /// @param _betFee Amount of tokens required for placing a bet that goes for the owner pool
-    constructor(
-        string memory tokenName,
-        string memory tokenSymbol,
-        uint256 _purchaseRatio,
-        uint256 _betPrice,
-        uint256 _betFee
-    ) {
-        paymentToken = new G6Token(tokenName, tokenSymbol);
-        purchaseRatio = _purchaseRatio;
-        betPrice = _betPrice;
-        betFee = _betFee;
+    constructor() {
+        g6Token = G6Token(0xba64c03e45cc1E3Fe483dBDB3A671DBa7a0Ab7cD);
+        oracleContract = CallOracle(0xD17ecb6579cAD73aE27596929e13b619bA9060A5);
+        usdcToken = IERC20(0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8);
     }
 
-    /// @notice Passes when the lottery is at closed state
+    /// @notice Deposits USDC `amount` to the Lending Pool
+    function depositUSDC(uint256 amount) external {
+        usdcToken.transferFrom(msg.sender, address(this), amount);
+        user(msg.sender).depositL_USDC += amount;
+        user(msg.sender).time_depositL_USDC = block.timestamp;
+        lendingPool += amount;
+    }
+
+    /// @notice Withdraws USDC `amount` from the Lending Pool
+    function withdrawUSDC(uint256 amount) external {
+        require(amount <= user(msg.sender).depositL_USDC, "Can't withdraw more than what you deposited");
+        user(msg.sender).depositL_USDC -= amount;
+        lendingPool -= amount;
+        usdcToken.transfer(msg.sender, amount);
+    }
+
+    /// @notice Deposits ETH tokens as Collateral and sets borrowing limit to 80% of ETH value in USDC
+    /// @dev This implementation is prone to rounding problems
+    function depositETH() external payable {
+        uint256 ethPrice = uint256(oracleContract.getEthUsdPrice()) / 100;
+        uint256 usdcValue = (msg.value * ethPrice)/(1 ether);
+        user(msg.sender).depositC_ETH += msg.value;
+        user(msg.sender).availableB_USDC += (usdcValue * 8) / 10;
+    }
+
+    /// @notice Borrow USDC `amount` from the Lending Pool
+    function borrowUSDC(uint256 amount) external {
+        require(amount <= user(msg.sender).availableB_USDC, "Can't withdraw more than allowed");
+        user(msg.sender).depositL_USDC -= amount;
+        lendingPool -= amount;
+        usdcToken.transfer(msg.sender, amount);
+    }
+
+/*     /// @notice Passes when the lottery is at closed state
     modifier whenBetsClosed() {
         require(!betsOpen, "Lottery is open");
         _;
@@ -74,30 +113,7 @@ contract LendingPlatform is Ownable {
         );
         betsClosingTime = closingTime;
         betsOpen = true;
-    }
-
-    /// @notice Gives tokens based on the amount of ETH sent
-    /// @dev This implementation is prone to rounding problems
-    function purchaseTokens() external payable {
-        paymentToken.mint(msg.sender, msg.value * purchaseRatio);
-    }
-
-    /// @notice Charges the bet price and creates a new bet slot with the sender's address
-    function bet() public whenBetsOpen {
-        ownerPool += betFee;
-        prizePool += betPrice;
-        _slots.push(msg.sender);
-        paymentToken.transferFrom(msg.sender, address(this), betPrice + betFee);
-    }
-
-    /// @notice Calls the bet function `times` times
-    function betMany(uint256 times) external {
-        require(times > 0);
-        while (times > 0) {
-            bet();
-            times--;
-        }
-    }
+    } */
 
     /// @notice Closes the lottery and calculates the prize, if any
     /// @dev Anyone can call this function at any time after the closing time
