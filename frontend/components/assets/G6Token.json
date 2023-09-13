@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "LotteryToken",
-  "sourceName": "contracts/LotteryToken.sol",
+  "contractName": "G6Token",
+  "sourceName": "contracts/G6Token.sol",
   "abi": [
     {
       "inputs": [
