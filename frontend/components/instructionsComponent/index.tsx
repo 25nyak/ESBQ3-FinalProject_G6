@@ -26,8 +26,9 @@ export default function Loading() {
 			<div className={styles.container}>
 				<header className={styles.header_container}>
 					<div className={styles.header}>
-						<span><h1>G6 Lending Protocol</h1></span>
+						<span><h1>Lending Protocol</h1></span>
             <h2>TVL $<TVL></TVL></h2>
+            <h2>TVB $<TVB></TVB></h2>
 					</div>
 				</header>
 					<p className={styles.get_started}>
@@ -64,6 +65,20 @@ function CollateralPool() {
 
 function TVL() {
   return (Number(LendingPool()) + Number((Number(CollateralPool()) * Number(CheckETHPrice()))/ 10000)).toLocaleString();
+}
+
+function TVB() {
+	const { data, isError, isLoading } = useContractRead({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'borrowTV',
+		watch: true,
+  });
+
+	const value = Number(data);
+	if (isLoading) return <div>Checking total value borrowed …</div>;
+  if (isError) return <div>Error checking total value borrowed</div>;
+  return ethers.formatUnits(BigInt(value), 6);
 }
 
 function PageBody() {
@@ -103,7 +118,6 @@ function PageBody() {
   );
 }
 
-
 ////////\\\\\\\\     WALLET INFO   ////////\\\\\\\\
 
 function UserInfo() {
@@ -120,9 +134,7 @@ function UserInfo() {
 				</header>
 					<p>Connected to <i>{chain?.name}</i> network </p>
           <p><b>ETH balance: </b><ETHBalance address={address}></ETHBalance> ETH</p>
-					{/* <G6TokenName></G6TokenName> */}
 					<G6TokenBalance address={address}></G6TokenBalance>
-          {/* <USDCTokenName></USDCTokenName> */}
 					<USDCTokenBalance address={address}></USDCTokenBalance>
       </div>
     );
@@ -194,20 +206,6 @@ function G6TokenBalance(params: { address: `0x${string}` }) {
   if (isLoading) return <div>Fetching balance…</div>;
   if (isError) return <div>Error fetching balance</div>;
   return <div><b><G6TokenSymbol></G6TokenSymbol> balance: </b>{Number(data?.formatted).toLocaleString()}</div>;
-}
-
-function USDCTokenName() {
-  const { data, isError, isLoading } = useContractRead({
-    address: USDC_ADDRESS,
-    abi: usdcTokenJson.abi,
-    functionName: "name",
-  });
-
-  const name = typeof data === "string" ? data : 0;
-
-  if (isLoading) return <div>Fetching name…</div>;
-  if (isError) return <div>Error fetching name</div>;
-  return <div><b>Token: </b> {name} ({USDCTokenSymbol()})</div>;
 }
 
 function USDCTokenSymbol() {
@@ -392,48 +390,6 @@ function SellG6Tokens() {
 		);
 }
 
-/* function TransferG6Tokens() {
-	const [addressTo, setAddress] = useState("");
-	const [amount, setAmount] = useState("");
-	const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: G6T_ADDRESS,
-    abi: g6TokenJson.abi,
-    functionName: 'transfer',
-  })
-		return (
-			<div>
-				<b>Transfer Tokens</b>
-				<br></br>	
-					<input
-						value={addressTo}
-						onChange={(e) => setAddress(e.target.value)}
-						placeholder='Address to (0x...)'
-					/>
-						<br></br>
-							<input
-								type='number'
-								value={amount}
-								onChange={(e) => setAmount(e.target.value)}
-								placeholder='Amount'
-							/>
-						<button
-							disabled={!write}
-							onClick={() =>write ({
-								args: [addressTo, ethers.parseUnits(amount)],
-							})
-						}
-						>
-							Transfer Tokens
-						</button>
-						{isLoading && <>&nbsp;Approve in wallet</>}
-						{isSuccess && <>&nbsp; 
-							<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
-								Transaction details
-							</a></>}
-			</div>
-		);
-} */
-
 ////////\\\\\\\\     USDC/ETH SWAP   ////////\\\\\\\\
 
 function USDCTokenSwap() {
@@ -606,7 +562,8 @@ function LendDashboard() {
           <p>your assets grow as a liquidity provider</p>
 				</div>
 			</header>
-{/*         <CheckUSDCDeposit address={address}></CheckUSDCDeposit> */}
+        <p><b>Deposited: </b>$<CheckUSDCDeposit address={address}></CheckUSDCDeposit></p>
+        <p><b>Rewards: </b>$<SupplyRewards address={address}></SupplyRewards></p>
           <br></br>
         <USDCAllowanceLend address={address}></USDCAllowanceLend>
 				<ApproveUSDCLend></ApproveUSDCLend>
@@ -704,7 +661,7 @@ function DepositUSDCTokens()	{
 		);
 }
 
-/* function CheckUSDCDeposit(params: { address: `0x${string}` }) {
+function CheckUSDCDeposit(params: { address: `0x${string}` }) {
 	const { data, isError, isLoading } = useContractRead({
     address: LENDING_CONTRACT,
     abi: lendingJson.abi,
@@ -713,12 +670,11 @@ function DepositUSDCTokens()	{
 		watch: true,
   });
 
-	const allowance = Number(data[1]);
-	if (isLoading) return <div>Checking allowance…</div>;
-  if (isError) return <div>Error checking allowance</div>;
-  return allowance;
-  //return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
-} */
+	const deposit = String(data[0]);
+	if (isLoading) return <div>Checking deposit…</div>;
+  if (isError) return <div>Error checking deposit</div>;
+  return Number(ethers.formatUnits(deposit, 6)).toLocaleString();
+}
 
 function WithdrawUSDCTokens()	{
 	const [amount, setAmount] = useState("");
@@ -756,6 +712,21 @@ function WithdrawUSDCTokens()	{
 		);
 }
 
+function SupplyRewards(params: { address: `0x${string}` }) {
+	const { data, isError, isLoading } = useContractRead({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'totalUSDCRewards_L',
+		args: [params.address],
+		watch: true,
+  });
+
+	const allowance = Number(data);
+	if (isLoading) return <div>Checking rewards…</div>;
+  if (isError) return <div>Error checking rewards</div>;
+  return Number(ethers.formatUnits(BigInt(allowance), 6)).toLocaleString();
+}
+
 ////////\\\\\\\\    BORROW DASHBOARD ////////\\\\\\\\
 
 function BorrowDashboard() {
@@ -769,7 +740,8 @@ function BorrowDashboard() {
           <p>Borrow USDC against your ETH collateral</p>
 				</div>
 			</header>
-        <p><b>Total debt: </b>$<CheckTotalDebt address={address}></CheckTotalDebt></p>
+        <p><b>Collateral: </b><CheckETHDeposit address={address}></CheckETHDeposit> ETH</p>
+        <p><b>Debt: </b>$<CheckTotalDebt address={address}></CheckTotalDebt></p>
         <p><b>Rewards: </b>$<CollateralRewards address={address}></CollateralRewards></p>
         <br></br>
         <USDCAllowanceLend address={address}></USDCAllowanceLend>
@@ -785,6 +757,21 @@ function BorrowDashboard() {
           <br></br>
 		</div>
 	);
+}
+
+function CheckETHDeposit(params: { address: `0x${string}` }) {
+	const { data, isError, isLoading } = useContractRead({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: `user`,
+		args: [params.address],
+		watch: true,
+  });
+
+	const collateral = String(data[3]);
+	if (isLoading) return <div>Checking collateral…</div>;
+  if (isError) return <div>Error checking collateral</div>;
+  return Number(ethers.formatUnits(collateral)).toLocaleString();
 }
 
 function DepositColETH() {
