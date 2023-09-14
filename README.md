@@ -6,12 +6,12 @@ Decentralized Lending application that enables supplying of ETH as collateral in
 
 https://esbq3-group6-lending.netlify.app/
 
-- **G6T Token contract**: 0xdCf3F6153F328A7Aacd7C688Bf39E8750a375746
+- **G6T Token contract**: 0xb46b5C88464E2DCeE987f159f6cF1066B52A360D
 - **USDC Token contract**: 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8
 - **ETH/USD Oracle contract**: 0xD17ecb6579cAD73aE27596929e13b619bA9060A5
-- **G6T Swap contract**: 0xdfAf15C7D809027571784F3Dd3F2e1cd7263A229
+- **G6T Swap contract**: 0xeb148995BB83E7D60BadcE63c9729Cc294327C16
 - **USDC Swap contract**: 0xddcEf1aEe575686B892aaea7d3773817be151E42
-- **Lending Protocol contract**: 0x9dD25B7ed4a0ddfB15EaA97f361d04729a58c368
+- **Lending Protocol contract**: 0x4148959eD900C7360b2B2F8b0bB44426D5874fA0
 
 The Lending dApp operates under three tokens: native Sepolia ETH, USDC and our very own G6T.
 
