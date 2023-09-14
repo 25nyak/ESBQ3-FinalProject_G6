@@ -1,6 +1,6 @@
 
-# Encode Solidity Bootcamp Q3
-## Final Project  - Group 6
+# Encode Solidity Bootcamp Q3 - Final Project 
+## Group 6 Lending Protocol
 
 Decentralized Lending application that enables supplying of ETH as collateral in order to borrow USDC. Accounts can also earn interest by supplying USDC to the protocol.
 
