@@ -26,7 +26,9 @@ export default function Loading() {
 			<div className={styles.container}>
 				<header className={styles.header_container}>
 					<div className={styles.header}>
-						<span><h2>G6 Lending Protocol</h2></span>
+						<span><h1>G6 Lending Protocol</h1></span>
+            <h2>TVL $<TVL></TVL></h2>
+            <h4>$<LendingPool></LendingPool> + <CollateralPool></CollateralPool>ETH</h4>
 					</div>
 				</header>
 					<p className={styles.get_started}>
@@ -34,6 +36,35 @@ export default function Loading() {
 					</p>
 			</div>
   );
+}
+
+function LendingPool() {
+	const { data, isError, isLoading } = useContractRead({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'lendingPool',
+		watch: true,
+  });
+
+	const value = Number(data);
+	if (isLoading) return <div>Checking lending pool…</div>;
+  if (isError) return <div>Error checking lending pool</div>;
+  return ethers.formatUnits(BigInt(value), 6);
+}
+
+function CollateralPool() {
+	const { data, isError, isLoading } = useBalance({
+    address: LENDING_CONTRACT,
+		watch: true,
+  });
+
+	if (isLoading) return <div>Checking collateral pool…</div>;
+  if (isError) return <div>Error checking collateral pool</div>;
+  return data?.formatted;
+}
+
+function TVL() {
+  return Number(LendingPool()) + (Number(CollateralPool()) * Number(CheckETHPrice()));
 }
 
 function PageBody() {
@@ -73,6 +104,7 @@ function PageBody() {
   );
 }
 
+
 ////////\\\\\\\\     WALLET INFO   ////////\\\\\\\\
 
 function UserInfo() {
@@ -88,7 +120,7 @@ function UserInfo() {
 					</div>
 				</header>
 					<p>Connected to <i>{chain?.name}</i> network </p>
-          <p><b>ETH Price: </b>{Number(CheckETHPrice()) / 10000} <USDCTokenSymbol></USDCTokenSymbol></p>
+          <p><b>ETH Price: </b>${Number(CheckETHPrice()) / 10000}</p>
 					{/* <G6TokenName></G6TokenName> */}
 					<G6TokenBalance address={address}></G6TokenBalance>
           {/* <USDCTokenName></USDCTokenName> */}
@@ -207,7 +239,8 @@ function G6TokenSwap() {
 				</div>
 			</header>
         <G6TokenPrice></G6TokenPrice>
-				<CheckG6TAllowance address={address}></CheckG6TAllowance>
+          <br></br>
+        <CheckG6TAllowance address={address}></CheckG6TAllowance>
 				<ApproveG6Tokens></ApproveG6Tokens>
 					<br></br>
 				<BuyG6Tokens></BuyG6Tokens>
@@ -404,7 +437,8 @@ function USDCTokenSwap() {
 				</div>
 			</header>
         <p><b>ETH Price: </b>{Number(CheckETHPrice()) / 10000} <USDCTokenSymbol></USDCTokenSymbol></p>
- 				<USDCAllowanceSwap address={address}></USDCAllowanceSwap>
+          <br></br>
+        <USDCAllowanceSwap address={address}></USDCAllowanceSwap>
 				<ApproveUSDCSwap></ApproveUSDCSwap>
 					<br></br>
 				<BuyUSDCTokens></BuyUSDCTokens>
@@ -563,6 +597,7 @@ function LendDashboard() {
 				</div>
 			</header>
 {/*         <CheckUSDCDeposit address={address}></CheckUSDCDeposit> */}
+          <br></br>
         <USDCAllowanceLend address={address}></USDCAllowanceLend>
 				<ApproveUSDCLend></ApproveUSDCLend>
 					<br></br>
@@ -633,7 +668,7 @@ function DepositUSDCTokens()	{
 		return (
 			<div>
         <b>Deposit USDC</b>
-				<br></br>
+        <h6>(APR 157.68%)</h6>
           <input
             type='number'
             value={amount}
@@ -725,11 +760,15 @@ function BorrowDashboard() {
 				</div>
 			</header>
         <p><b>Total debt: </b><CheckTotalDebt address={address}></CheckTotalDebt> <USDCTokenSymbol></USDCTokenSymbol></p>
+        <p><b>Rewards: </b><CollateralRewards address={address}></CollateralRewards> <USDCTokenSymbol></USDCTokenSymbol></p>
+        <br></br>
         <USDCAllowanceLend address={address}></USDCAllowanceLend>
 				<ApproveUSDCLend></ApproveUSDCLend>
 					<br></br>
 		    <DepositColETH></DepositColETH>
 					<br></br>
+        <WithdrawColEth></WithdrawColEth>					
+          <br></br>
 				<BorrowUSDCTokens></BorrowUSDCTokens>
 					<br></br>
         <RepayUSDCDebt></RepayUSDCDebt>
@@ -747,8 +786,8 @@ function DepositColETH() {
   })
 		return (
 			<div>
-				<b>Deposit ETH collateral</b>
-				<br></br>
+				<b>Deposit ETH</b>
+        <h6>(APR 78.84%)</h6>
 					<input
 						type='number'
 						value={amount}
@@ -771,6 +810,40 @@ function DepositColETH() {
 		);
 }
 
+function WithdrawColEth() {
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'withdrawETH_C',
+  })
+		return (
+			<div>
+        <b>Withdraw ETH</b>
+        <br></br>
+				<input
+					type='number'
+					value={amount}
+					onChange={(e) => setAmount(e.target.value)}
+					placeholder={`amount`}
+				/>
+					<button
+						disabled={!write}
+						onClick={() => {
+							write ({args: [ethers.parseUnits(amount)]})
+					}}
+					>
+						&nbsp;Submit&nbsp;
+					</button>
+					{isLoading && <>&nbsp;Approve in wallet</>}
+					{isSuccess && <>&nbsp; 
+						<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+							Transaction details
+						</a></>}
+			</div>
+		);
+}
+
 function BorrowUSDCTokens()	{
 	const [amount, setAmount] = useState("");
 	const { data, isLoading, isSuccess, write } = useContractWrite({
@@ -781,7 +854,7 @@ function BorrowUSDCTokens()	{
 		return (
 			<div>
         <b>Borrow USDC</b>
-				<br></br>
+        <h6>(APR 315.36%)</h6>
           <input
             type='number'
             value={amount}
@@ -855,5 +928,20 @@ function CheckTotalDebt(params: { address: `0x${string}` }) {
 	const allowance = Number(data);
 	if (isLoading) return <div>Checking debt…</div>;
   if (isError) return <div>Error checking debt</div>;
+  return ethers.formatUnits(BigInt(allowance), 6);
+}
+
+function CollateralRewards(params: { address: `0x${string}` }) {
+	const { data, isError, isLoading } = useContractRead({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'totalUSDCRewards_C',
+		args: [params.address],
+		watch: true,
+  });
+
+	const allowance = Number(data);
+	if (isLoading) return <div>Checking rewards…</div>;
+  if (isError) return <div>Error checking rewards</div>;
   return ethers.formatUnits(BigInt(allowance), 6);
 }
