@@ -28,7 +28,6 @@ export default function Loading() {
 					<div className={styles.header}>
 						<span><h1>G6 Lending Protocol</h1></span>
             <h2>TVL $<TVL></TVL></h2>
-            <h4>$<LendingPool></LendingPool> + <CollateralPool></CollateralPool>ETH</h4>
 					</div>
 				</header>
 					<p className={styles.get_started}>
@@ -60,11 +59,11 @@ function CollateralPool() {
 
 	if (isLoading) return <div>Checking collateral pool…</div>;
   if (isError) return <div>Error checking collateral pool</div>;
-  return data?.formatted;
+  return Number(data?.formatted);
 }
 
 function TVL() {
-  return Number(LendingPool()) + (Number(CollateralPool()) * Number(CheckETHPrice()));
+  return (Number(LendingPool()) + Number((Number(CollateralPool()) * Number(CheckETHPrice()))/ 10000)).toLocaleString();
 }
 
 function PageBody() {
@@ -120,7 +119,7 @@ function UserInfo() {
 					</div>
 				</header>
 					<p>Connected to <i>{chain?.name}</i> network </p>
-          <p><b>ETH Price: </b>${Number(CheckETHPrice()) / 10000}</p>
+          <p><b>ETH balance: </b><ETHBalance address={address}></ETHBalance> ETH</p>
 					{/* <G6TokenName></G6TokenName> */}
 					<G6TokenBalance address={address}></G6TokenBalance>
           {/* <USDCTokenName></USDCTokenName> */}
@@ -144,6 +143,17 @@ function UserInfo() {
       <p>Connect wallet to continue</p>
     </div>
   );
+}
+
+function ETHBalance(params: { address: `0x${string}` }) {
+  const { data, isError, isLoading } = useBalance({
+    address: params.address,
+		watch: true
+  });
+
+  if (isLoading) return <div>Fetching balance…</div>;
+  if (isError) return <div>Error fetching balance</div>;
+  return Number(data?.formatted).toLocaleString();
 }
 
 function G6TokenName() {
@@ -183,7 +193,7 @@ function G6TokenBalance(params: { address: `0x${string}` }) {
 
   if (isLoading) return <div>Fetching balance…</div>;
   if (isError) return <div>Error fetching balance</div>;
-  return <div><b><G6TokenSymbol></G6TokenSymbol> balance: </b>{data?.formatted}</div>;
+  return <div><b><G6TokenSymbol></G6TokenSymbol> balance: </b>{Number(data?.formatted).toLocaleString()}</div>;
 }
 
 function USDCTokenName() {
@@ -223,10 +233,10 @@ function USDCTokenBalance(params: { address: `0x${string}` }) {
 
   if (isLoading) return <div>Fetching balance…</div>;
   if (isError) return <div>Error fetching balance</div>;
-  return <div><b><USDCTokenSymbol></USDCTokenSymbol> balance: </b>{data?.formatted}</div>;
+  return <div><b><USDCTokenSymbol></USDCTokenSymbol> balance: </b>${Number(data?.formatted).toLocaleString()}</div>;
 }
 
-////////\\\\\\\\     G6T SWAP   ////////\\\\\\\\
+////////\\\\\\\\     G6T/ETH SWAP   ////////\\\\\\\\
 
 function G6TokenSwap() {
 	const {address} = useAccount();
@@ -278,7 +288,7 @@ function CheckG6TAllowance(params: { address: `0x${string}` }) {
 	const allowance = Number(data);
 	if (isLoading) return <div>Checking allowance…</div>;
   if (isError) return <div>Error checking allowance</div>;
-  return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance))} <G6TokenSymbol></G6TokenSymbol></div>;
+  return <div><b>Approved: </b> {ethers.formatUnits(BigInt(allowance))} <G6TokenSymbol></G6TokenSymbol></div>;
 }
 
 function ApproveG6Tokens()	{
@@ -424,7 +434,7 @@ function SellG6Tokens() {
 		);
 } */
 
-////////\\\\\\\\     USDC SWAP   ////////\\\\\\\\
+////////\\\\\\\\     USDC/ETH SWAP   ////////\\\\\\\\
 
 function USDCTokenSwap() {
 	const {address} = useAccount();
@@ -436,7 +446,7 @@ function USDCTokenSwap() {
 					<h3>USDC/ETH Swap</h3>
 				</div>
 			</header>
-        <p><b>ETH Price: </b>{Number(CheckETHPrice()) / 10000} <USDCTokenSymbol></USDCTokenSymbol></p>
+        <p><b>ETH Price: </b>${Number(Number(CheckETHPrice()) / 10000).toLocaleString()}</p>
           <br></br>
         <USDCAllowanceSwap address={address}></USDCAllowanceSwap>
 				<ApproveUSDCSwap></ApproveUSDCSwap>
@@ -477,7 +487,7 @@ function USDCAllowanceSwap(params: { address: `0x${string}` }) {
 	const allowance = Number(data);
 	if (isLoading) return <div>Checking allowance…</div>;
   if (isError) return <div>Error checking allowance</div>;
-  return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
+  return <div><b>Approved: </b> ${Number(ethers.formatUnits(BigInt(allowance), 6)).toLocaleString()}</div>;
 }
 
 function ApproveUSDCSwap()	{
@@ -621,7 +631,7 @@ function USDCAllowanceLend(params: { address: `0x${string}` }) {
 	const allowance = Number(data);
 	if (isLoading) return <div>Checking allowance…</div>;
   if (isError) return <div>Error checking allowance</div>;
-  return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
+  return <div><b>Approved Tokens: </b> ${Number(ethers.formatUnits(BigInt(allowance), 6)).toLocaleString()}</div>;
 }
 
 function ApproveUSDCLend()	{
@@ -759,8 +769,8 @@ function BorrowDashboard() {
           <p>Borrow USDC against your ETH collateral</p>
 				</div>
 			</header>
-        <p><b>Total debt: </b><CheckTotalDebt address={address}></CheckTotalDebt> <USDCTokenSymbol></USDCTokenSymbol></p>
-        <p><b>Rewards: </b><CollateralRewards address={address}></CollateralRewards> <USDCTokenSymbol></USDCTokenSymbol></p>
+        <p><b>Total debt: </b>$<CheckTotalDebt address={address}></CheckTotalDebt></p>
+        <p><b>Rewards: </b>$<CollateralRewards address={address}></CollateralRewards></p>
         <br></br>
         <USDCAllowanceLend address={address}></USDCAllowanceLend>
 				<ApproveUSDCLend></ApproveUSDCLend>
@@ -928,7 +938,7 @@ function CheckTotalDebt(params: { address: `0x${string}` }) {
 	const allowance = Number(data);
 	if (isLoading) return <div>Checking debt…</div>;
   if (isError) return <div>Error checking debt</div>;
-  return ethers.formatUnits(BigInt(allowance), 6);
+  return Number(ethers.formatUnits(BigInt(allowance), 6)).toLocaleString();
 }
 
 function CollateralRewards(params: { address: `0x${string}` }) {
@@ -943,5 +953,5 @@ function CollateralRewards(params: { address: `0x${string}` }) {
 	const allowance = Number(data);
 	if (isLoading) return <div>Checking rewards…</div>;
   if (isError) return <div>Error checking rewards</div>;
-  return ethers.formatUnits(BigInt(allowance), 6);
+  return Number(ethers.formatUnits(BigInt(allowance), 6)).toLocaleString();
 }
