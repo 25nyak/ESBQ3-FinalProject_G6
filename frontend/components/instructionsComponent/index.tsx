@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
 import styles from './instructionsComponent.module.css';
-import { useAccount, useBalance, useContractRead, useContractWrite, useNetwork, usePrepareContractWrite, useWaitForTransaction } from 'wagmi';
+import Footer from "@/components/instructionsComponent/navigation/footer";
+import { useAccount, useBalance, useContractRead, useContractWrite, useNetwork } from 'wagmi';
 import { ethers} from 'ethers';
 import * as g6TokenJson from '../assets/G6Token.json';
 import * as g6TSwapJson from '../assets/G6Token_Swap.json';
 import * as usdcTokenJson from '../assets/USDCToken.json';
 import * as usdcSwapJson from '../assets/USDC_Swap.json';
-import Footer from "@/components/instructionsComponent/navigation/footer";
+import * as lendingJson from '../assets/LendingProtocol.json';
 
-const G6T_ADDRESS = '0x1D6557e0a71Eee3A5cF54CC2617E194264619c0A';   // 18 decimals
-const USDC_ADDRESS = '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8'   //  6 decimals
-const ORACLE_ETH_USD = '0xD17ecb6579cAD73aE27596929e13b619bA9060A5' //  8 decimals
-const G6T_SWAP_CONTRACT = '0xdfAf15C7D809027571784F3Dd3F2e1cd7263A229'
+const G6T_ADDRESS = '0xb46b5C88464E2DCeE987f159f6cF1066B52A360D';       // 18 decimals
+const USDC_ADDRESS = '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8'       //  6 decimals
+const G6T_SWAP_CONTRACT = '0xeb148995BB83E7D60BadcE63c9729Cc294327C16'
 const USDC_SWAP_CONTRACT = '0xddcEf1aEe575686B892aaea7d3773817be151E42'
-const LENDING_PLAT_CONTRACT = '0x9dD25B7ed4a0ddfB15EaA97f361d04729a58c368'
+const LENDING_CONTRACT = '0xebe9671DF3d9af24C65Db396b7EFbf8031A1450B'
 
 export default function Loading() {
 	const [mounted, setMounted] = useState(false);
@@ -203,7 +203,7 @@ function G6TokenSwap() {
 		<div>
 			<header className={styles.header_container}>
 				<div className={styles.header}>
-					<h3>G6T Swap</h3>
+					<h3>G6T/ETH Swap</h3>
 				</div>
 			</header>
         <G6TokenPrice></G6TokenPrice>
@@ -400,7 +400,7 @@ function USDCTokenSwap() {
 		<div>
 			<header className={styles.header_container}>
 				<div className={styles.header}>
-					<h3>USDC Swap</h3>
+					<h3>USDC/ETH Swap</h3>
 				</div>
 			</header>
         <p><b>ETH Price: </b>{Number(CheckETHPrice()) / 10000} <USDCTokenSymbol></USDCTokenSymbol></p>
@@ -560,6 +560,7 @@ function LendDashboard() {
 					<h3>Lend Dashboard</h3>
 				</div>
 			</header>
+{/*         <CheckUSDCDeposit address={address}></CheckUSDCDeposit> */}
         <CheckUSDCAllowance address={address}></CheckUSDCAllowance>
 				<ApproveUSDCTokens></ApproveUSDCTokens>
 					<br></br>
@@ -574,9 +575,9 @@ function LendDashboard() {
 function DepositUSDCTokens()	{
 	const [amount, setAmount] = useState("");
 	const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: LENDING_PLAT_CONTRACT,
-    abi: usdcTokenJson.abi,
-    functionName: 'depositUSDC',
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'depositUSDC_L',
   })
 		return (
 			<div>
@@ -609,25 +610,26 @@ function DepositUSDCTokens()	{
 
 /* function CheckUSDCDeposit(params: { address: `0x${string}` }) {
 	const { data, isError, isLoading } = useContractRead({
-    address: LENDING_PLAT_CONTRACT,
-    abi: usdcTokenJson.abi,
-    functionName: 'allowance',
-		args: [params.address, USDC_SWAP_CONTRACT],
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: `user`,
+		args: [params.address],
 		watch: true,
   });
 
-	const allowance = Number(data);
+	const allowance = Number(data[1]);
 	if (isLoading) return <div>Checking allowance…</div>;
   if (isError) return <div>Error checking allowance</div>;
-  return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
+  return allowance;
+  //return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
 } */
 
 function WithdrawUSDCTokens()	{
 	const [amount, setAmount] = useState("");
 	const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: LENDING_PLAT_CONTRACT,
-    abi: usdcTokenJson.abi,
-    functionName: 'withdrawUSDC',
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'withdrawUSDC_L',
   })
 		return (
 			<div>
@@ -670,6 +672,7 @@ function BorrowDashboard() {
 					<h3>Borrow Dashboard</h3>
 				</div>
 			</header>
+        <p><b>Total debt: </b><CheckTotalDebt address={address}></CheckTotalDebt></p>
         <CheckUSDCAllowance address={address}></CheckUSDCAllowance>
 				<ApproveUSDCTokens></ApproveUSDCTokens>
 					<br></br>
@@ -677,6 +680,8 @@ function BorrowDashboard() {
 					<br></br>
 				<BorrowUSDCTokens></BorrowUSDCTokens>
 					<br></br>
+        <RepayUSDCDebt></RepayUSDCDebt>
+          <br></br>
 		</div>
 	);
 }
@@ -684,9 +689,9 @@ function BorrowDashboard() {
 function DepositColETH() {
   const [amount, setAmount] = useState("");
 	const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: USDC_SWAP_CONTRACT,
-    abi: usdcSwapJson.abi,
-    functionName: 'swapToUSDC',
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'depositETH_C',
   })
 		return (
 			<div>
@@ -717,9 +722,9 @@ function DepositColETH() {
 function BorrowUSDCTokens()	{
 	const [amount, setAmount] = useState("");
 	const { data, isLoading, isSuccess, write } = useContractWrite({
-    address: LENDING_PLAT_CONTRACT,
-    abi: usdcTokenJson.abi,
-    functionName: 'borrowUSDC',
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'borrowUSDC_B',
   })
 		return (
 			<div>
@@ -748,4 +753,55 @@ function BorrowUSDCTokens()	{
             </a></>}
 			</div>
 		);
+}
+
+function RepayUSDCDebt()	{
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'repayUSDC_B',
+  })
+		return (
+			<div>
+        <b>Repay USDC debt</b>
+				<br></br>
+          <input
+            type='number'
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="Amount"
+            />
+          <button
+            disabled={!write}
+            onClick={() => {
+              write ({
+                args: [ethers.parseUnits(amount, 6)],
+              })
+            }}
+          >
+            &nbsp;Submit&nbsp;
+          </button>
+          {isLoading && <>&nbsp;Approve in wallet</>}
+          {isSuccess && <>&nbsp; 
+            <a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+              Transaction details
+            </a></>}
+			</div>
+		);
+}
+
+function CheckTotalDebt(params: { address: `0x${string}` }) {
+	const { data, isError, isLoading } = useContractRead({
+    address: LENDING_CONTRACT,
+    abi: lendingJson.abi,
+    functionName: 'totalDebtOf',
+		args: [params.address],
+		watch: true,
+  });
+
+	const allowance = Number(data);
+	if (isLoading) return <div>Checking debt…</div>;
+  if (isError) return <div>Error checking debt</div>;
+  return ethers.formatUnits(BigInt(allowance), 6);
 }
