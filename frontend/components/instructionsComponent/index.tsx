@@ -13,7 +13,7 @@ const G6T_ADDRESS = '0xb46b5C88464E2DCeE987f159f6cF1066B52A360D';       // 18 de
 const USDC_ADDRESS = '0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8'       //  6 decimals
 const G6T_SWAP_CONTRACT = '0xeb148995BB83E7D60BadcE63c9729Cc294327C16'
 const USDC_SWAP_CONTRACT = '0xddcEf1aEe575686B892aaea7d3773817be151E42'
-const LENDING_CONTRACT = '0xebe9671DF3d9af24C65Db396b7EFbf8031A1450B'
+const LENDING_CONTRACT = '0x4148959eD900C7360b2B2F8b0bB44426D5874fA0'
 
 export default function Loading() {
 	const [mounted, setMounted] = useState(false);
@@ -404,8 +404,8 @@ function USDCTokenSwap() {
 				</div>
 			</header>
         <p><b>ETH Price: </b>{Number(CheckETHPrice()) / 10000} <USDCTokenSymbol></USDCTokenSymbol></p>
- 				<CheckUSDCAllowance address={address}></CheckUSDCAllowance>
-				<ApproveUSDCTokens></ApproveUSDCTokens>
+ 				<USDCAllowanceSwap address={address}></USDCAllowanceSwap>
+				<ApproveUSDCSwap></ApproveUSDCSwap>
 					<br></br>
 				<BuyUSDCTokens></BuyUSDCTokens>
 					<br></br>
@@ -431,7 +431,7 @@ function CheckETHPrice() {
   return Number(ethers.formatUnits(price, 6));
 }
 
-function CheckUSDCAllowance(params: { address: `0x${string}` }) {
+function USDCAllowanceSwap(params: { address: `0x${string}` }) {
 	const { data, isError, isLoading } = useContractRead({
     address: USDC_ADDRESS,
     abi: usdcTokenJson.abi,
@@ -446,7 +446,7 @@ function CheckUSDCAllowance(params: { address: `0x${string}` }) {
   return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
 }
 
-function ApproveUSDCTokens()	{
+function ApproveUSDCSwap()	{
 	const [amount, setAmount] = useState("");
 	const { data, isLoading, isSuccess, write } = useContractWrite({
     address: USDC_ADDRESS,
@@ -558,11 +558,13 @@ function LendDashboard() {
 			<header className={styles.header_container}>
 				<div className={styles.header}>
 					<h3>Lend Dashboard</h3>
+          <p>Supply into the protocol and watch </p>
+          <p>your assets grow as a liquidity provider</p>
 				</div>
 			</header>
 {/*         <CheckUSDCDeposit address={address}></CheckUSDCDeposit> */}
-        <CheckUSDCAllowance address={address}></CheckUSDCAllowance>
-				<ApproveUSDCTokens></ApproveUSDCTokens>
+        <USDCAllowanceLend address={address}></USDCAllowanceLend>
+				<ApproveUSDCLend></ApproveUSDCLend>
 					<br></br>
 		    <DepositUSDCTokens></DepositUSDCTokens>
 					<br></br>
@@ -570,6 +572,55 @@ function LendDashboard() {
 					<br></br>
 		</div>
 	);
+}
+
+function USDCAllowanceLend(params: { address: `0x${string}` }) {
+	const { data, isError, isLoading } = useContractRead({
+    address: USDC_ADDRESS,
+    abi: usdcTokenJson.abi,
+    functionName: 'allowance',
+		args: [params.address, LENDING_CONTRACT],
+		watch: true,
+  });
+
+	const allowance = Number(data);
+	if (isLoading) return <div>Checking allowance…</div>;
+  if (isError) return <div>Error checking allowance</div>;
+  return <div><b>Approved Tokens: </b> {ethers.formatUnits(BigInt(allowance), 6)} <USDCTokenSymbol></USDCTokenSymbol></div>;
+}
+
+function ApproveUSDCLend()	{
+	const [amount, setAmount] = useState("");
+	const { data, isLoading, isSuccess, write } = useContractWrite({
+    address: USDC_ADDRESS,
+    abi: usdcTokenJson.abi,
+    functionName: 'approve',
+  })
+		return (
+			<div>
+				<input
+					type='number'
+					value={amount}
+					onChange={(e) => setAmount(e.target.value)}
+					placeholder="Amount"
+					/>
+				<button
+					disabled={!write}
+					onClick={() => {
+						write ({
+							args: [LENDING_CONTRACT, ethers.parseUnits(amount, 6)],
+						})
+					}}
+				>
+					&nbsp;Approve&nbsp;
+				</button>
+				{isLoading && <>&nbsp;Approve in wallet</>}
+				{isSuccess && <>&nbsp; 
+					<a target={"_blank"} href={`https://sepolia.etherscan.io/tx/${data?.hash}`}>
+						Transaction details
+					</a></>}
+			</div>
+		);
 }
 
 function DepositUSDCTokens()	{
@@ -670,11 +721,12 @@ function BorrowDashboard() {
 			<header className={styles.header_container}>
 				<div className={styles.header}>
 					<h3>Borrow Dashboard</h3>
+          <p>Borrow USDC against your ETH collateral</p>
 				</div>
 			</header>
-        <p><b>Total debt: </b><CheckTotalDebt address={address}></CheckTotalDebt></p>
-        <CheckUSDCAllowance address={address}></CheckUSDCAllowance>
-				<ApproveUSDCTokens></ApproveUSDCTokens>
+        <p><b>Total debt: </b><CheckTotalDebt address={address}></CheckTotalDebt> <USDCTokenSymbol></USDCTokenSymbol></p>
+        <USDCAllowanceLend address={address}></USDCAllowanceLend>
+				<ApproveUSDCLend></ApproveUSDCLend>
 					<br></br>
 		    <DepositColETH></DepositColETH>
 					<br></br>
