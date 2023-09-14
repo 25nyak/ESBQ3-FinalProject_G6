@@ -5,11 +5,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {CallOracle} from "./CallOracle.sol";
 
 interface IERC20 {
-  function balanceOf(address account) external view returns (uint256);
-  function transfer(address recipient, uint256 amount) external returns (bool);
-  function allowance(address owner, address spender) external view returns (uint256);
-  function approve(address spender, uint256 amount) external returns (bool);
-  function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 }
 
 /// @title A very simple lottery contract
@@ -61,9 +61,9 @@ contract USDC_Swap is Ownable {
 
   /// @notice Gives ETH tokens based on USDC `amount` and the price received from the Oracle
   /// @dev This implementation is prone to rounding problems
-  function swapToETH(uint256 amount) external {
+    function swapToETH(uint256 amount) external {
     uint256 price = uint256(getETHPrice()) / 100;
-    uint256 ethAmount = (amount * price)/(1 ether);
+    uint256 ethAmount = (amount * 1 ether)/(price);
     require(ethAmount <= address(this).balance, "Not enough liquidity");
     usdcPool += amount;
     (bool ok,) = msg.sender.call{value: ethAmount}("");

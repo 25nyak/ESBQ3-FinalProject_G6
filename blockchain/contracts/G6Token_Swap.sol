@@ -14,14 +14,9 @@ contract G6Token_Swap is Ownable {
   uint256 public purchaseRatio;
 
   /// @notice Constructor function
-  /// @param _tokenAddress Group 6 Token contract address
-  /// @param _purchaseRatio Amount of tokens given per ETH paid
-  constructor(
-    address _tokenAddress,
-    uint256 _purchaseRatio
-  ) {
-    g6Token = G6Token(_tokenAddress);
-    purchaseRatio = _purchaseRatio;
+  constructor() {
+    g6Token = G6Token(0xb46b5C88464E2DCeE987f159f6cF1066B52A360D);
+    purchaseRatio = 10000;
   }
 
   /// @notice Gives tokens based on the amount of ETH sent
