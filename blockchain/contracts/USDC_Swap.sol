@@ -12,9 +12,8 @@ interface IERC20 {
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
 }
 
-/// @title A very simple lottery contract
+/// @title A very simple swap pool between USDC and ETH
 /// @author josevazf
-/// @notice You can use this contract for running a very simple lottery
 contract USDC_Swap is Ownable {
   /// @notice Address of the oracle contract ETH/USD from Chainlink feed
   CallOracle public oracleContract;
