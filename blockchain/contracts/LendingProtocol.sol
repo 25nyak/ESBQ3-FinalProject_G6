@@ -71,8 +71,8 @@ contract LendingProtocol is Ownable {
 
   // @notice Gets G6T value for a given `amount`of USDC 
   function getG6TValue_USDC(uint256 amount) public view returns (uint256) {
-    uint256 ethAmount = (amount / 10000);
-    return (ethAmount * getETHPrice())/(1 ether);
+    uint256 value = (amount * 10000) / getETHPrice();
+    return value * (1 ether);
   }
   
   /// @notice Returns the total USDC debt of passed `account`
@@ -88,8 +88,8 @@ contract LendingProtocol is Ownable {
     if (user[account].time_withdrawB_USDC == 0)
       return 0;
     uint256 elapsedTime = block.timestamp - user[account].time_withdrawB_USDC;
-    // @dev Interest rate of 0.00001%-second | 0.864%-day | APR:315.36%
-    tempFee = user[account].interestFee + elapsedTime * (user[account].withdrawB_USDC / 100000);
+    // @dev Interest rate APR:5.00%
+    tempFee = user[account].interestFee + elapsedTime * (user[account].withdrawB_USDC / 6307200);
     return tempFee;
   }
 
@@ -98,8 +98,8 @@ contract LendingProtocol is Ownable {
     if (user[account].time_depositL_USDC == 0)
       return 0;
     uint256 elapsedTime = block.timestamp - user[account].time_depositL_USDC;
-    // @dev Reward rate of 0.000005%-second | 0.432%-day | APR:157.68%
-    uint256 totalRewardsUSDC = user[account].reward_depositL_USDC + elapsedTime * (user[account].depositL_USDC / 200000);
+    // @dev Reward rate APR:3.00%
+    uint256 totalRewardsUSDC = user[account].reward_depositL_USDC + elapsedTime * (user[account].depositL_USDC / 10512000);
     return totalRewardsUSDC;
   }
 
@@ -127,29 +127,30 @@ contract LendingProtocol is Ownable {
     uint256 rewards = getG6TValue_USDC(totalUSDCRewards_L(msg.sender));
     if (amount == user[msg.sender].depositL_USDC)
       user[msg.sender].time_depositL_USDC = 0;
+    else
+      user[msg.sender].time_depositL_USDC = block.timestamp;
     user[msg.sender].depositL_USDC -= amount;
     lendingPool -= amount;
     user[msg.sender].reward_depositL_USDC = 0;
-    user[msg.sender].time_depositL_USDC = block.timestamp;
     usdcToken.transfer(msg.sender, amount);
     g6Token.mint(msg.sender, rewards);
   }
 
-  /// @notice Returns the total USDC Collateral deposit rewards of passed `account`
+  /// @notice Returns the total USDC Collateral ETH deposit rewards of passed `account`
   /// @dev    Borrower Dashboard
   function totalUSDCRewards_C(address account) public view returns (uint256) {
     if (user[account].time_depositC_ETH == 0)
       return 0;
     uint256 elapsedTime = block.timestamp - user[account].time_depositC_ETH;
-    // @dev Reward rate of 0.0000025%-second | 0.216%-day | APR:78.84%
-    uint256 totalRewardsUSDC = user[account].reward_depositC_ETH + elapsedTime * (getUSDCValue_ETH(user[account].depositC_ETH) / 400000);
+    // @dev Reward rate APR:2.00%
+    uint256 totalRewardsUSDC = user[account].reward_depositC_ETH + elapsedTime * (getUSDCValue_ETH(user[account].depositC_ETH) / 15768000);
     return totalRewardsUSDC;
   }
 
   /// @notice Deposits ETH tokens as Collateral and sets borrowing limit to 80% of ETH value in USDC
   /// @dev    Borrower Dashboard
   /// @dev This implementation is prone to rounding problems
-  function depositETH_C() external payable {
+  function depositETH_C() public payable {
     if (user[msg.sender].time_depositC_ETH != 0)
       user[msg.sender].reward_depositC_ETH += totalUSDCRewards_C(msg.sender);
     user[msg.sender].time_depositC_ETH = block.timestamp;
@@ -166,8 +167,9 @@ contract LendingProtocol is Ownable {
     uint256 rewards = getG6TValue_USDC(totalUSDCRewards_C(msg.sender));
     if (amount == user[msg.sender].depositC_ETH)
       user[msg.sender].time_depositC_ETH = 0;
+    else
+      user[msg.sender].time_depositC_ETH = block.timestamp;
     user[msg.sender].reward_depositC_ETH = 0;
-    user[msg.sender].time_depositC_ETH = block.timestamp;
     g6Token.mint(msg.sender, rewards);
     (bool ok,) = msg.sender.call{value: amount}("");
     require(ok, "Failed to withdraw");
@@ -220,21 +222,8 @@ contract LendingProtocol is Ownable {
     }
   }
 
-  /// @notice Whithdraws deposited ETH to the owner
-  /// @dev    Just for testing purposes, should not exist
-  function ownerWithdrawETH() external onlyOwner{
-    (bool ok,) = msg.sender.call{value: address(this).balance}("");
-    require(ok, "Failed to withdraw");
-  }
-
-  /// @notice Withdraws all USDC to the owner
-  /// @dev    Just for testing purposes, should not exist
-  function ownerWithdrawUSDC() external onlyOwner{
-    usdcToken.transfer(msg.sender, lendingPool + feesPool);
-    lendingPool = 0;
-    feesPool = 0;
-  }
-
   /// @notice Receive function allows to receive ETH when no calldata is passed
-  receive() external payable {}
+  receive() external payable {
+    depositETH_C();
+  }
 }
