@@ -14,7 +14,7 @@ const G6T_ADDRESS = "0xb46b5C88464E2DCeE987f159f6cF1066B52A360D" // 18 decimals
 const USDC_ADDRESS = "0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8" //  6 decimals
 const G6T_SWAP_CONTRACT = "0xeb148995BB83E7D60BadcE63c9729Cc294327C16"
 const USDC_SWAP_CONTRACT = "0xddcEf1aEe575686B892aaea7d3773817be151E42"
-const LENDING_CONTRACT = "0x4148959eD900C7360b2B2F8b0bB44426D5874fA0"
+const LENDING_CONTRACT = "0xf0Bf271fd7376FE9e49D6cF1f97511e35A873176"
 
 export default function Loading() {
 	const [mounted, setMounted] = useState(false)
@@ -99,14 +99,14 @@ function PageBody() {
 						display: "flex",
 						justifyContent: "center",
 						alignItems: "center",
-						height: 50,
-						paddingTop: 10,
-						paddingBottom: 10,
-						paddingLeft: 40,
-						paddingRight: 40,
+						height: 45,
+						paddingTop: 1,
+						paddingBottom: 1,
+						paddingLeft: 10,
+						paddingRight: 10,
 						border: "1px solid black",
 						cursor: "pointer",
-						borderRadius: 2
+						borderRadius: 1
 					}}
 					onClick={() => handleTabClick(index)}
 				>
@@ -122,7 +122,7 @@ function PageBody() {
 				<div
 					style={{
 						width: "100%",
-						height: 300,
+						height: 175,
 					}}
 				>
 					<UserInfo></UserInfo>
@@ -132,9 +132,9 @@ function PageBody() {
 						style={{
 							display: "flex",
 							alignItems: "center",
-							justifyContent: "space-evenly",
+							justifyContent: "center",
 							width: "100%",
-							height: 20,
+							height: 0,
 							marginBottom: 50,
 						}}
 					>
@@ -179,15 +179,14 @@ function PageBody() {
 function UserInfo() {
 	const { address, isConnecting, isDisconnected } = useAccount()
 	const { chain } = useNetwork()
-	const ethPrice = Number(CheckETHPrice()) / 10000
 	if (address)
 		return (
 			<div>
-				<header className={styles.header_container}>
+				{/* <header className={styles.header_container}>
 					<div className={styles.header}>
-						<h3>User Info</h3>
+						<h4>User Info</h4>
 					</div>
-				</header>
+				</header> */}
 				<div
 					style={{
 						display: "flex",
@@ -202,9 +201,7 @@ function UserInfo() {
 						<b>ETH balance: </b>
 						<ETHBalance address={address}></ETHBalance> ETH
 					</p>
-					{/* <G6TokenName></G6TokenName> */}
-					<G6TokenBalance address={address}></G6TokenBalance>
-					{/* <USDCTokenName></USDCTokenName> */}
+					<G6TokenBalance address={address}></G6TokenBalance><G6TokenSymbol></G6TokenSymbol>
 					<USDCTokenBalance address={address}></USDCTokenBalance>
 				</div>
 			</div>
@@ -237,24 +234,6 @@ function ETHBalance(params: { address: `0x${string}` }) {
 	if (isLoading) return <div>Fetching balance…</div>
 	if (isError) return <div>Error fetching balance</div>
 	return Number(data?.formatted).toLocaleString()
-}
-
-function G6TokenName() {
-	const { data, isError, isLoading } = useContractRead({
-		address: G6T_ADDRESS,
-		abi: g6TokenJson.abi,
-		functionName: "name",
-	})
-
-	const name = typeof data === "string" ? data : 0
-
-	if (isLoading) return <div>Fetching name…</div>
-	if (isError) return <div>Error fetching name</div>
-	return (
-		<div>
-			<b>Token: </b> {name} ({G6TokenSymbol()})
-		</div>
-	)
 }
 
 function G6TokenSymbol() {
@@ -336,16 +315,14 @@ function G6TokenSwap() {
 					</div>
 				</header>
 				<G6TokenPrice></G6TokenPrice>
-				<br></br>
+				  <br></br>
 				<CheckG6TAllowance address={address}></CheckG6TAllowance>
 				<ApproveG6Tokens></ApproveG6Tokens>
-				<br></br>
+				  <br></br>
 				<BuyG6Tokens></BuyG6Tokens>
-				<br></br>
+				  <br></br>
 				<SellG6Tokens></SellG6Tokens>
-				<br></br>
-				{/* 				<TransferG6Tokens></TransferG6Tokens>
-					<br></br> */}
+				  <br></br>
 			</div>
 		)
 }
@@ -512,16 +489,14 @@ function USDCTokenSwap() {
 				<p>
 					<b>ETH Price: </b>${Number(Number(CheckETHPrice()) / 10000).toLocaleString()}
 				</p>
-				<br></br>
+				  <br></br>
 				<USDCAllowanceSwap address={address}></USDCAllowanceSwap>
 				<ApproveUSDCSwap></ApproveUSDCSwap>
-				<br></br>
+				  <br></br>
 				<BuyUSDCTokens></BuyUSDCTokens>
-				<br></br>
+				  <br></br>
 				<SellUSDCTokens></SellUSDCTokens>
-				<br></br>
-				{/* 				<TransferUSDCTokens></TransferUSDCTokens>
-					<br></br> */}
+				  <br></br>
 			</div>
 		)
 }
@@ -604,7 +579,7 @@ function BuyUSDCTokens() {
 		<div>
 			<b>Buy USDC</b>
 			<br></br>
-			<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`${CheckETHPrice()}/1 ETH`} />
+			<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={'USDC amount'} />
 			<button
 				disabled={!write}
 				onClick={() =>
@@ -639,7 +614,7 @@ function SellUSDCTokens() {
 		<div>
 			<b>Sell USDC</b>
 			<br></br>
-			<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`amount ${USDCTokenSymbol()}`} />
+			<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={'USDC amount'} />
 			<button
 				disabled={!write}
 				onClick={() => {
@@ -681,14 +656,14 @@ function LendDashboard() {
 				</header>
 				<p><b>Deposited: </b>$<CheckUSDCDeposit address={address}></CheckUSDCDeposit></p>
         <p><b>Rewards: </b>$<SupplyRewards address={address}></SupplyRewards></p>
-				<br></br>
+		  		<br></br>
 				<USDCAllowanceLend address={address}></USDCAllowanceLend>
 				<ApproveUSDCLend></ApproveUSDCLend>
-				<br></br>
+			  	<br></br>
 				<DepositUSDCTokens></DepositUSDCTokens>
-				<br></br>
+		  		<br></br>
 				<WithdrawUSDCTokens></WithdrawUSDCTokens>
-				<br></br>
+          <br></br>
 			</div>
 		)
 }
@@ -755,7 +730,7 @@ function DepositUSDCTokens() {
 	return (
 		<div>
 			<b>Deposit USDC</b>
-			<h6>(APR 157.68%)</h6>
+			<h6>(APR 3.00%)</h6>
 			<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" />
 			<button
 				disabled={!write}
@@ -864,15 +839,15 @@ function BorrowDashboard() {
 				<br></br>
 				<USDCAllowanceLend address={address}></USDCAllowanceLend>
 				<ApproveUSDCLend></ApproveUSDCLend>
-				<br></br>
+			  	<br></br>
 				<DepositColETH></DepositColETH>
-				<br></br>
+		  		<br></br>
 				<WithdrawColEth></WithdrawColEth>
-				<br></br>
+		  		<br></br>
 				<BorrowUSDCTokens></BorrowUSDCTokens>
-				<br></br>
+		  		<br></br>
 				<RepayUSDCDebt></RepayUSDCDebt>
-				<br></br>
+          <br></br>
 			</div>
 		)
 }
@@ -902,7 +877,7 @@ function DepositColETH() {
 	return (
 		<div>
 			<b>Deposit ETH</b>
-			<h6>(APR 78.84%)</h6>
+			<h6>(APR 2.00%)</h6>
 			<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`amount`} />
 			<button
 				disabled={!write}
@@ -970,7 +945,7 @@ function BorrowUSDCTokens() {
 	return (
 		<div>
 			<b>Borrow USDC</b>
-			<h6>(APR 315.36%)</h6>
+			<h6>(APR 5.00%)</h6>
 			<input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" />
 			<button
 				disabled={!write}
