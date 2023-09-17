@@ -11,7 +11,7 @@ https://esbq3-group6-lending.netlify.app/
 - **ETH/USD Oracle contract**: 0xD17ecb6579cAD73aE27596929e13b619bA9060A5
 - **G6T Swap contract**: 0xeb148995BB83E7D60BadcE63c9729Cc294327C16
 - **USDC Swap contract**: 0xddcEf1aEe575686B892aaea7d3773817be151E42
-- **Lending Protocol contract**: 0x4148959eD900C7360b2B2F8b0bB44426D5874fA0
+- **Lending Protocol contract**: 0xf0Bf271fd7376FE9e49D6cF1f97511e35A873176
 
 The Lending dApp operates under three tokens: native Sepolia ETH, USDC and our very own G6T.
 
