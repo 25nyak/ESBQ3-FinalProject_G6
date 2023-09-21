@@ -179,7 +179,7 @@ contract LendingProtocol is Ownable {
   /// @dev    Borrower Dashboard
   function borrowUSDC_B(uint256 amount) external minValue(amount){
     require(amount <= user[msg.sender].availableB_USDC, "Cannot borrow more than allowed");
-    require(amount <= ((lendingPool * 5 )/ 10), "Can't borrow more than 50% of the Lending Pool");
+    require(amount <= ((lendingPool * 5 )/ 10), "Cannot borrow more than 50% of the Lending Pool");
     if (user[msg.sender].interestFee != 0)
       user[msg.sender].interestFee = totalFeeOf(msg.sender);
     user[msg.sender].availableB_USDC -= amount;
