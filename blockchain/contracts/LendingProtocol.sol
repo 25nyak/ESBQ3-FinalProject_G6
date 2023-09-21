@@ -123,7 +123,7 @@ contract LendingProtocol is Ownable {
   /// @notice Withdraws USDC `amount` from the Lending Pool
   /// @dev    Lender Dashboard
   function withdrawUSDC_L(uint256 amount) external minValue(amount){
-    require(amount <= user[msg.sender].depositL_USDC, "Can't withdraw more than what you deposited");
+    require(amount <= user[msg.sender].depositL_USDC, "Cannot withdraw more than what you deposited");
     uint256 rewards = getG6TValue_USDC(totalUSDCRewards_L(msg.sender));
     if (amount == user[msg.sender].depositL_USDC)
       user[msg.sender].time_depositL_USDC = 0;
@@ -161,7 +161,7 @@ contract LendingProtocol is Ownable {
 
   /// @notice Whithdraws `amount` of deposited ETH to the owner
   function withdrawETH_C(uint256 amount) external minValue(amount){
-    require(amount <= user[msg.sender].depositC_ETH, "Can't withdraw more than what you deposited");
+    require(amount <= user[msg.sender].depositC_ETH, "Cannot withdraw more than what you deposited");
     uint256 ethLeft = user[msg.sender].depositC_ETH - amount;
     require(((getUSDCValue_ETH(ethLeft) * 8) / 10) >= totalDebtOf(msg.sender), "Current debt is above 80% of collateral value left");
     uint256 rewards = getG6TValue_USDC(totalUSDCRewards_C(msg.sender));
@@ -178,7 +178,7 @@ contract LendingProtocol is Ownable {
   /// @notice Borrow USDC `amount` from the Lending Pool
   /// @dev    Borrower Dashboard
   function borrowUSDC_B(uint256 amount) external minValue(amount){
-    require(amount <= user[msg.sender].availableB_USDC, "Can't borrow more than allowed");
+    require(amount <= user[msg.sender].availableB_USDC, "Cannot borrow more than allowed");
     require(amount <= ((lendingPool * 5 )/ 10), "Can't borrow more than 50% of the Lending Pool");
     if (user[msg.sender].interestFee != 0)
       user[msg.sender].interestFee = totalFeeOf(msg.sender);
