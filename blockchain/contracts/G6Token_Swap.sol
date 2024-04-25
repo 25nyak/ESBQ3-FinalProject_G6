@@ -15,7 +15,7 @@ contract G6Token_Swap is Ownable {
 
   /// @notice Constructor function
   constructor() {
-    g6Token = G6Token(0xb46b5C88464E2DCeE987f159f6cF1066B52A360D);
+    g6Token = G6Token(0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39);
     purchaseRatio = 10000;
   }
 
